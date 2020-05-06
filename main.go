@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	testhis "k8s.io/api/networking/v1beta1"
+	v1beta1 "k8s.io/api/networking/v1beta1"
 )
 
 type Controller struct {
@@ -217,9 +217,9 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	ingressIndexer, ingressInformer := cache.NewIndexerInformer(ingressListWatcher, &testhis.Ingress{}, 5*time.Second, cache.ResourceEventHandlerFuncs{
+	ingressIndexer, ingressInformer := cache.NewIndexerInformer(ingressListWatcher, &v1beta1.Ingress{}, 5*time.Second, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			// annotations := obj.(*testhis.Ingress).GetAnnotations()
+			// annotations := obj.(*v1beta1.Ingress).GetAnnotations()
 			// if _, ok := annotations["test"]; !ok {
 			// 	return
 			// }
@@ -250,6 +250,10 @@ func main() {
 
 	controller := NewController(queue, serviceIndexer, serviceInformer, ingressIndexer, ingressInformer)
 
+	//Start the public ip watcher
+	currentIP := CurrentIP{}
+	go watchPublicIP(&currentIP)
+
 	// Now let's start the controller
 	stop := make(chan struct{})
 	defer close(stop)
@@ -258,4 +262,3 @@ func main() {
 	// Wait forever
 	select {}
 }
-
