@@ -173,6 +173,10 @@ func main() {
 	}
 	flag.Parse()
 
+	cfAuthEmail = os.Getenv("CF_AUTH_EMAIL")
+	cfAuthToken = os.Getenv("CF_AUTH_TOKEN")
+	cfZoneID = os.Getenv("CF_ZONE_ID")
+
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
