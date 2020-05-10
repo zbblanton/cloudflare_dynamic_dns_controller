@@ -14,7 +14,7 @@ kubectl apply -n cloudflare-dynamic-dns-controller -f deploy.yml
 
 ## Creating a Cloudflare record
 
-To use the controller add the annotations to either a server or an ingress resource.
+To use the controller add the annotations to either a service or an ingress resource. For example:
 
 ``` yaml
 ---
