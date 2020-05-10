@@ -295,7 +295,7 @@ func (c *Cloudflare) UpdateRecordByID(id, recordType, name, content string, ttl 
 	return respBody.Result, nil
 }
 
-func (c *Cloudflare) syncRecord(contentType, name, content string, ttl int, proxied bool) error {
+func (c *Cloudflare) SyncRecord(contentType, name, content string, ttl int, proxied bool) error {
 	record, err := c.GetRecord(contentType, name)
 	if err != nil {
 		//fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
@@ -309,10 +309,21 @@ func (c *Cloudflare) syncRecord(contentType, name, content string, ttl int, prox
 			return err
 		}
 	} else {
-		_, err = c.UpdateRecordByID(record.ID, contentType, name, content, 1, proxied)
-		if err != nil {
-			//fmt.Printf("Failed to update TXT record for %v: %v\n", name, err)
-			return err
+		//Copy the ID since we don't care about comparing it
+		newRecord := CloudflareRecord{
+			ID:         record.ID,
+			RecordType: contentType,
+			Name:       name,
+			Content:    content,
+			TTL:        ttl,
+			Proxied:    proxied,
+		}
+		if record != newRecord {
+			_, err = c.UpdateRecordByID(record.ID, contentType, name, content, 1, proxied)
+			if err != nil {
+				//fmt.Printf("Failed to update TXT record for %v: %v\n", name, err)
+				return err
+			}
 		}
 	}
 

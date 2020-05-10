@@ -84,14 +84,14 @@ func (c *Controller) cloudflareDeleteRecordPair(key string) error {
 
 //Create both TXT and A record for key
 func (c *Controller) cloudflareSyncRecordPair(key, hostname, ip string, proxied bool) error {
-	err := c.cf.syncRecord("TXT", hostname, key, 1, false)
+	err := c.cf.SyncRecord("TXT", hostname, key, 1, false)
 	if err != nil {
 		fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
 		return nil
 	}
 
 	publicIP := c.currentIP.Get()
-	err = c.cf.syncRecord("A", hostname, publicIP, 1, proxied)
+	err = c.cf.SyncRecord("A", hostname, publicIP, 1, proxied)
 	if err != nil {
 		fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
 		return nil
