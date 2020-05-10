@@ -1,0 +1,75 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+  name: cloudflare-dynamic-dns-controller
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+    resources:
+      - ingresses
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+  name: cloudflare-dynamic-dns-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cloudflare-dynamic-dns-controller
+subjects:
+  - kind: ServiceAccount
+    name: cloudflare-dynamic-dns-controller
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+  name: cloudflare-dynamic-dns-controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+  name: cloudflare-dynamic-dns-controller
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflare-dynamic-dns-controller
+    spec:
+      containers:
+        - name: cloudflare-dynamic-dns-controller
+          env:
+            - name: CF_AUTH_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare
+                  key: email
+            - name: CF_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare
+                  key: token
+            - name: CF_ZONE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare
+                  key: zone
+          image: docker.io/amazon/aws-alb-ingress-controller:v1.1.6
+      serviceAccountName: cloudflare-dynamic-dns-controller
