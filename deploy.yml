@@ -30,6 +30,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: cloudflare-dynamic-dns-controller
+    namespace: cloudflare-dynamic-dns-controller
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -71,5 +72,5 @@ spec:
                 secretKeyRef:
                   name: cloudflare
                   key: zone
-          image: docker.io/amazon/aws-alb-ingress-controller:v1.1.6
+          image: docker.io/zbblanton/cloudflare_dynamic_dns_controller:latest
       serviceAccountName: cloudflare-dynamic-dns-controller

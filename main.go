@@ -58,7 +58,7 @@ func main() {
 	// create the workqueue
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
-	serviceIndexer, serviceInformer := cache.NewIndexerInformer(serviceListWatcher, &v1.Service{}, 5*time.Second, cache.ResourceEventHandlerFuncs{
+	serviceIndexer, serviceInformer := cache.NewIndexerInformer(serviceListWatcher, &v1.Service{}, 60*time.Second, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
@@ -81,7 +81,7 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	ingressIndexer, ingressInformer := cache.NewIndexerInformer(ingressListWatcher, &v1beta1.Ingress{}, 5*time.Second, cache.ResourceEventHandlerFuncs{
+	ingressIndexer, ingressInformer := cache.NewIndexerInformer(ingressListWatcher, &v1beta1.Ingress{}, 60*time.Second, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
