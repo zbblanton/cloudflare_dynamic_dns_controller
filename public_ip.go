@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -39,7 +40,7 @@ func getPublicIP() (ip string, err error) {
 }
 
 func watchPublicIP(currentIP *CurrentIP) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	for {
 		publicIP, err := getPublicIP()
 		if err != nil {
@@ -49,6 +50,20 @@ func watchPublicIP(currentIP *CurrentIP) {
 			currentIP.Set(publicIP)
 		}
 		println(currentIP.Get())
+		<-ticker.C
+	}
+}
+
+func waitForPublicIP(currentIP *CurrentIP) {
+	ticker := time.NewTicker(time.Second)
+	for {
+		ip := currentIP.Get()
+		if ip != "" {
+			fmt.Println("Public IP: " + ip)
+			break
+		} else {
+			fmt.Println("Waiting to get public IP...")
+		}
 		<-ticker.C
 	}
 }

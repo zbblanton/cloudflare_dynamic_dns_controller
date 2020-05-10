@@ -101,9 +101,10 @@ func main() {
 	cfZoneID := os.Getenv("CF_ZONE_ID")
 	cf := NewCloudflare(cfAuthEmail, cfAuthToken, cfZoneID)
 
-	//Start the public ip watcher
+	//Start the public ip watcher and wait until we get an IP
 	currentIP := CurrentIP{}
 	go watchPublicIP(&currentIP)
+	waitForPublicIP(&currentIP)
 
 	controller := NewController(&currentIP, cf, queue, serviceIndexer, serviceInformer, ingressIndexer, ingressInformer)
 
