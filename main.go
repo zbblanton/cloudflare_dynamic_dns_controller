@@ -52,8 +52,6 @@ func main() {
 
 	serviceIndexer, serviceInformer := cache.NewIndexerInformer(serviceListWatcher, &v1.Service{}, 5*time.Second, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			// fmt.Println("HERE:")
-			// fmt.Println(obj.(*v1.Service).GetAnnotations())
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
 				queue.Add("service/" + key)

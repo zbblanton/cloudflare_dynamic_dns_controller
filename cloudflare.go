@@ -295,6 +295,30 @@ func (c *Cloudflare) UpdateRecordByID(id, recordType, name, content string, ttl 
 	return respBody.Result, nil
 }
 
+func (c *Cloudflare) syncRecord(contentType, name, content string, ttl int, proxied bool) error {
+	record, err := c.GetRecord(contentType, name)
+	if err != nil {
+		//fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
+		//errors.New("Failed trying to get TXT record for " + name + ": " + err)
+		return err
+	}
+	if record.ID == "" {
+		_, err = c.CreateRecord(contentType, name, content, 1, proxied)
+		if err != nil {
+			//fmt.Printf("Failed to create TXT record for %v: %v\n", name, err)
+			return err
+		}
+	} else {
+		_, err = c.UpdateRecordByID(record.ID, contentType, name, content, 1, proxied)
+		if err != nil {
+			//fmt.Printf("Failed to update TXT record for %v: %v\n", name, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 //PatchRecordByID - Patch record
 func (c *Cloudflare) PatchRecordByID() {
 

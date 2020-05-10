@@ -59,6 +59,47 @@ func (c *Controller) processNextItem() bool {
 	return true
 }
 
+//Delete both TXT and A record for key
+func (c *Controller) cloudflareDeleteRecordPair(key string) error {
+	records, err := c.cf.ListTXTRecords()
+	if err != nil {
+		fmt.Printf("Failed to get list of txt records:  %v\n", err)
+		return nil
+	}
+	for _, record := range records {
+		if record.Content == key {
+			err = c.cf.DeleteRecordByName("A", record.Name)
+			if err != nil {
+				fmt.Printf("Failed to delete A record:  %v\n", err)
+			}
+			err = c.cf.DeleteRecordByName("TXT", record.Name)
+			if err != nil {
+				fmt.Printf("Failed to delete TXT record:  %v\n", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+//Create both TXT and A record for key
+func (c *Controller) cloudflareSyncRecordPair(key, hostname, ip string, proxied bool) error {
+	err := c.cf.syncRecord("TXT", hostname, key, 1, false)
+	if err != nil {
+		fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
+		return nil
+	}
+
+	publicIP := c.currentIP.Get()
+	err = c.cf.syncRecord("A", hostname, publicIP, 1, proxied)
+	if err != nil {
+		fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
+		return nil
+	}
+
+	return nil
+}
+
 func (c *Controller) cloudflareSync(key string) error {
 	var obj interface{}
 	var exists bool
@@ -79,24 +120,7 @@ func (c *Controller) cloudflareSync(key string) error {
 
 	if !exists {
 		fmt.Printf("Service %s does not exist anymore\n", key)
-
-		records, err := c.cf.ListTXTRecords()
-		if err != nil {
-			fmt.Printf("Failed to get list of txt records:  %v\n", err)
-			return nil
-		}
-		for _, record := range records {
-			if record.Content == key {
-				err = c.cf.DeleteRecordByName("A", record.Name)
-				if err != nil {
-					fmt.Printf("Failed to delete A record:  %v\n", err)
-				}
-				err = c.cf.DeleteRecordByName("TXT", record.Name)
-				if err != nil {
-					fmt.Printf("Failed to delete TXT record:  %v\n", err)
-				}
-			}
-		}
+		c.cloudflareDeleteRecordPair(key)
 	} else {
 		var annotations map[string]string
 		if splitKey[0] == "service" {
@@ -121,53 +145,8 @@ func (c *Controller) cloudflareSync(key string) error {
 			}
 		}
 
-		//Create or update txt record
-		record, err := c.cf.GetRecord("TXT", hostname)
-		if err != nil {
-			fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
-			return nil
-		}
-		if record.ID == "" {
-			_, err = c.cf.CreateRecord("TXT", hostname, key, 1, false)
-			if err != nil {
-				fmt.Printf("Failed to create TXT record for %v: %v\n", key, err)
-				return nil
-			}
-		} else {
-			_, err = c.cf.UpdateRecordByID(record.ID, "TXT", hostname, key, 1, false)
-			if err != nil {
-				fmt.Printf("Failed to update TXT record for %v: %v\n", key, err)
-				return nil
-			}
-		}
-
 		publicIP := c.currentIP.Get()
-		record, err = c.cf.GetRecord("A", hostname)
-		if err != nil {
-			fmt.Printf("Failed trying to get TXT record for %v: %v\n", key, err)
-			return nil
-		}
-		if record.ID == "" {
-			_, err := c.cf.CreateRecord("A", hostname, publicIP, 1, proxied)
-			if err != nil {
-				fmt.Printf("Failed to create A record for %v: %v\n", key, err)
-				return nil
-			}
-		} else {
-			_, err := c.cf.UpdateRecordByID(record.ID, "A", hostname, publicIP, 1, proxied)
-			if err != nil {
-				fmt.Printf("Failed to create A record for %v: %v\n", key, err)
-				return nil
-			}
-		}
-
-		// publicIP := c.currentIP.Get()
-		// _, err := c.cf.CreateARecord(hostname, publicIP, 1, proxied)
-		// if err != nil {
-		// 	fmt.Printf("Failed to create A record for %v: %v\n", key, err)
-		// 	return nil
-		// }
-
+		c.cloudflareSyncRecordPair(key, hostname, publicIP, proxied)
 		fmt.Printf("Sync/Add/Update %v, hostname: %v, ip: %v\n ", key, hostname, publicIP)
 	}
 
