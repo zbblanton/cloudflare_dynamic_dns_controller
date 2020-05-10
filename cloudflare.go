@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -115,7 +114,7 @@ func (c *Cloudflare) CallAPI(method, path string, body io.Reader) error {
 func (c *Cloudflare) ListTXTRecords() (records []CloudflareRecord, err error) {
 	c.mux.Lock()
 	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records?type=TXT"
-	fmt.Println(url)
+	//fmt.Println(url)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -157,7 +156,7 @@ func (c *Cloudflare) ListTXTRecords() (records []CloudflareRecord, err error) {
 func (c *Cloudflare) GetRecord(recordType, recordName string) (record CloudflareRecord, err error) {
 	c.mux.Lock()
 	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records?type=" + recordType + "&name=" + recordName
-	fmt.Println(url)
+	//fmt.Println(url)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -189,16 +188,17 @@ func (c *Cloudflare) GetRecord(recordType, recordName string) (record Cloudflare
 	// }
 
 	if len(respBody.Result) == 0 {
-		return CloudflareRecord{}, errors.New("Could not find any records for " + recordName)
+		//return CloudflareRecord{}, errors.New("Could not find any records for " + recordName)
+		return CloudflareRecord{}, nil
 	}
 
 	return respBody.Result[0], nil
 }
 
-//CreateARecord - Create an A record
-func (c *Cloudflare) CreateARecord(name, content string, ttl int, proxied bool) (record CloudflareRecord, err error) {
+//CreateRecord - Create an record
+func (c *Cloudflare) CreateRecord(contentType, name, content string, ttl int, proxied bool) (record CloudflareRecord, err error) {
 	newRecord := CloudflareRecordReq{
-		RecordType: "A",
+		RecordType: contentType,
 		Name:       name,
 		Content:    content,
 		TTL:        ttl,
@@ -209,57 +209,7 @@ func (c *Cloudflare) CreateARecord(name, content string, ttl int, proxied bool) 
 
 	c.mux.Lock()
 	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records"
-	fmt.Println(url)
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return CloudflareRecord{}, err
-	}
-	req.Header.Add("X-Auth-Email", c.AuthEmail)
-	req.Header.Add("X-Auth-Key", c.AuthToken)
-	req.Header.Add("Content-type", "application/json")
-	c.mux.Unlock()
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return CloudflareRecord{}, err
-	}
-	defer resp.Body.Close() //Close the resp body when finished
-
-	respBody := CloudflareSingleResp{}
-	err = json.NewDecoder(resp.Body).Decode(&respBody)
-	if err != nil {
-		return CloudflareRecord{}, err
-	}
-
-	//Check if success, print errors from api if not.
-	var errMessage string
-	if !respBody.Success {
-		for _, e := range respBody.Errors {
-			code := strconv.Itoa(e.Code)
-			errMessage += "Error code " + code + ", " + e.Message + "."
-		}
-		return CloudflareRecord{}, errors.New(errMessage)
-	}
-
-	return respBody.Result, nil
-}
-
-//CreateTXTRecord - Create a txt record
-func (c *Cloudflare) CreateTXTRecord(name, content string, ttl int, proxied bool) (record CloudflareRecord, err error) {
-	newRecord := CloudflareRecordReq{
-		RecordType: "TXT",
-		Name:       name,
-		Content:    content,
-		TTL:        ttl,
-		Proxied:    proxied,
-	}
-	body := new(bytes.Buffer)
-	json.NewEncoder(body).Encode(newRecord)
-
-	c.mux.Lock()
-	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records"
-	fmt.Println(url)
+	//fmt.Println(url)
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
@@ -296,8 +246,53 @@ func (c *Cloudflare) CreateTXTRecord(name, content string, ttl int, proxied bool
 }
 
 //UpdateRecordByID - Update record info
-func (c *Cloudflare) UpdateRecordByID(record *CloudflareRecord) {
+func (c *Cloudflare) UpdateRecordByID(id, recordType, name, content string, ttl int, proxied bool) (record CloudflareRecord, err error) {
+	newRecord := CloudflareRecordReq{
+		RecordType: recordType,
+		Name:       name,
+		Content:    content,
+		TTL:        ttl,
+		Proxied:    proxied,
+	}
+	body := new(bytes.Buffer)
+	json.NewEncoder(body).Encode(newRecord)
 
+	c.mux.Lock()
+	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records/" + id
+	//fmt.Println(url)
+	client := &http.Client{}
+	req, err := http.NewRequest("PUT", url, body)
+	if err != nil {
+		return CloudflareRecord{}, err
+	}
+	req.Header.Add("X-Auth-Email", c.AuthEmail)
+	req.Header.Add("X-Auth-Key", c.AuthToken)
+	req.Header.Add("Content-type", "application/json")
+	c.mux.Unlock()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return CloudflareRecord{}, err
+	}
+	defer resp.Body.Close() //Close the resp body when finished
+
+	respBody := CloudflareSingleResp{}
+	err = json.NewDecoder(resp.Body).Decode(&respBody)
+	if err != nil {
+		return CloudflareRecord{}, err
+	}
+
+	//Check if success, print errors from api if not.
+	var errMessage string
+	if !respBody.Success {
+		for _, e := range respBody.Errors {
+			code := strconv.Itoa(e.Code)
+			errMessage += "Error code " + code + ", " + e.Message + "."
+		}
+		return CloudflareRecord{}, errors.New(errMessage)
+	}
+
+	return respBody.Result, nil
 }
 
 //PatchRecordByID - Patch record
@@ -314,7 +309,7 @@ func (c *Cloudflare) DeleteRecordByName(recordType, name string) error {
 
 	c.mux.Lock()
 	url := "https://api.cloudflare.com/client/v4/zones/" + c.ZoneID + "/dns_records/" + record.ID
-	fmt.Println(url)
+	//fmt.Println(url)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
