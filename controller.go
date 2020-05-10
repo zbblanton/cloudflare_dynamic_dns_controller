@@ -147,7 +147,7 @@ func (c *Controller) cloudflareSync(key string) error {
 
 		publicIP := c.currentIP.Get()
 		c.cloudflareSyncRecordPair(key, hostname, publicIP, proxied)
-		fmt.Printf("Sync/Add/Update %v, hostname: %v, ip: %v\n ", key, hostname, publicIP)
+		fmt.Printf("Sync/Add/Update %v, hostname: %v, ip: %v\n", key, hostname, publicIP)
 	}
 
 	return nil
